@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using BasicTestApp;
 using Microsoft.AspNetCore.Components.E2ETest.Infrastructure.ServerFixtures;
 using Microsoft.AspNetCore.Components.E2ETests.Tests;
@@ -37,6 +38,19 @@ public class ServerGlobalizationTest : GlobalizationTest<BasicTestAppServerSiteF
     public override void CanSetCultureAndParseCultureSensitiveNumbersAndDates(string culture)
     {
         base.CanSetCultureAndParseCultureSensitiveNumbersAndDates(culture);
+    }
+
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("fr-FR")]
+    public void CanSetCultureAndPreserveCulture(string culture)
+    {
+        var cultureInfo = CultureInfo.GetCultureInfo(culture);
+        SetCulture(culture);
+
+        var result = Browser.Exists(By.Id("background_statehaschanged_result"));
+        Browser.Click(By.Id("background_statehaschanged"));
+        Browser.Equal(new DateTime(1985, 3, 4).ToString(cultureInfo), () => result.Text);
     }
 
     protected override void SetCulture(string culture)
