@@ -169,8 +169,8 @@ class OidcAuthorizeService implements AuthorizeService {
         }
     }
 
-    async completeSignIn (url: string) {
-        const requiresLogin = await this.loginRequired(url);
+    async completeSignIn(url: string) {
+        const requiresLogin = this.loginRequired(url);
         const stateExists = await this.stateExists(url);
         try {
             const user = await this._userManager.signinCallback(url);
@@ -232,12 +232,8 @@ class OidcAuthorizeService implements AuthorizeService {
         }
     }
 
-    private async stateExists(urlString: string) {
-        const url = new URL(urlString);
-        const responseMode = this._userManager.settings.response_mode;
-        const urlSearchParams = (responseMode === "query" ) ? (new URLSearchParams(url.search)) : (new URLSearchParams(url.hash));
-        const state = urlSearchParams.get('state');
-
+    private async stateExists(url: string) {
+        const state = this.getParam(url, 'state');
         if (state && this._userManager.settings.stateStore) {
             return await this._userManager.settings.stateStore.get(state);
         } else {
@@ -245,14 +241,15 @@ class OidcAuthorizeService implements AuthorizeService {
         }
     }
 
-    private async loginRequired(url: string) {
-        const errorParameter = new URLSearchParams(new URL(url).search).get('error');
-        if (errorParameter && this._userManager.settings.stateStore) {
-            const error = await this._userManager.settings.stateStore.get(errorParameter);
-            return error === 'login_required';
-        } else {
-            return false;
-        }
+    private loginRequired(url: string): boolean {
+        return this.getParam(url, 'error') === 'login_required';
+    }
+
+    private getParam(urlString: string, name: string): string | null {
+        const url = new URL(urlString);
+        const responseMode = this._userManager.settings.response_mode;
+        const urlSearchParams = new URLSearchParams((responseMode === "fragment" ? url.hash : url.search).substring(1));
+        return urlSearchParams.get(name);
     }
 
     private createArguments(state?: unknown) {
@@ -347,7 +344,7 @@ export class AuthenticationService {
     public static async completeSignIn(url: string) {
         let operation = this._pendingOperations[url];
         if (!operation) {
-            operation = AuthenticationService.instance.completeSignIn(url);
+            operation = this._pendingOperations[url] = AuthenticationService.instance.completeSignIn(url);
             await operation;
             delete this._pendingOperations[url];
         }
@@ -362,7 +359,7 @@ export class AuthenticationService {
     public static async completeSignOut(url: string) {
         let operation = this._pendingOperations[url];
         if (!operation) {
-            operation = AuthenticationService.instance.completeSignOut(url);
+            operation = this._pendingOperations[url] = AuthenticationService.instance.completeSignOut(url);
             await operation;
             delete this._pendingOperations[url];
         }
