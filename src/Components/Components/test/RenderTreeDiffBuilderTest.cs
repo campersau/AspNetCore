@@ -1749,6 +1749,7 @@ public class RenderTreeDiffBuilderTest : IDisposable
             tree.AddAttribute(1, "MyDecimal", decimal.MinusOne);
             tree.AddAttribute(1, "MyDate", dateTimeWillNotChange);
             tree.AddAttribute(1, "MyGuid", Guid.Empty);
+            tree.AddAttribute(1, "MyEnum", StringComparison.OrdinalIgnoreCase);
             tree.CloseComponent();
         }
 
